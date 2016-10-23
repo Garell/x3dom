@@ -1063,6 +1063,7 @@ x3dom.Utils.generateProperties = function (viewarea, shape)
 		property.ALPHATHRESHOLD	  = (appearance) ? appearance._vf.alphaClipThreshold.toFixed(2) : 0.1;
 
         property.GAMMACORRECTION  = environment._vf.gammaCorrectionDefault;
+        property.PBRSHADER        = x3dom.isa(material, x3dom.nodeTypes.PhysicalMaterial) ? 1 : 0;
 
         //console.log(property);
 	}

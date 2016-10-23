@@ -50,6 +50,7 @@
                 {"path": "shader/ShaderShadowRendering.js"},
                 {"path": "shader/ShaderTextureRefinement.js"},
                 {"path": "shader/ShaderBlur.js"},
+				{"path": "shader/ShaderPBR.js"},
 		{"path": "shader/ShaderSSAO.js", "type": "file"},
 		{"path": "shader/ShaderSSAOBlur.js", "type": "file"}
             ]},
@@ -128,7 +129,8 @@
                     {"file": "Material.js"},
                     {"file": "TwoSidedMaterial.js"},
                     {"file": "X3DShapeNode.js"},
-                    {"file": "Shape.js"}
+                    {"file": "Shape.js"},
+					{"file": "PhysicalMaterial.js"}
                 ]},
                 {"name": "Lighting", "filePrefix": "nodes/Lighting/", "files":[
                     {"file": "X3DLightNode.js"},
@@ -237,7 +239,7 @@
                     {"file": "ComposedShader.js"},
                     {"file": "ShaderPart.js"},
                     {"file": "X3DVertexAttributeNode.js"},
-                    {"file": "FloatVertexAttribute.js"}
+                    {"file": "FloatVertexAttribute.js"}					
                 ]},
                 {"name": "Geometry3D", "filePrefix": "nodes/Geometry3D/", "files":[
                     {"file": "X3DSpatialGeometryNode.js"},

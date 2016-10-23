@@ -2073,12 +2073,39 @@ x3dom.gfx_webgl = (function () {
         // Set Material
         //===========================================================================
         var mat = s_app ? s_app._cf.material.node : null;
+
         var shader = s_app ? s_app._shader : null;
         var twoSidedMat = false;
 
         var isUserDefinedShader = shader && x3dom.isa(shader, x3dom.nodeTypes.ComposedShader);
 
-        if (s_gl.csshader) {
+        if(x3dom.isa(mat, x3dom.nodeTypes.PhysicalMaterial))
+        {
+            var texBRDF = x3dom.shader.pbr.util.renderBRFDToTexture(gl, null);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, texBRDF);
+            sp.bind();
+            sp.BRDF = 0;
+
+            if(mat.tex == null)
+                mat.tex = new x3dom.Texture(gl, shape._nameSpace.doc, this.cache, mat._cf.envMap.node);
+
+            if(mat.tex.texture.textureCubeReady){
+                gl.activeTexture(gl.TEXTURE1);
+                gl.bindTexture(gl.TEXTURE_CUBE_MAP, mat.tex.texture);
+
+                gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+                sp.envTex = 1;
+                //x3dom.shader.pbr.util.createPrefilteredEnvMipmaps(gl, mat.tex.texture, 1024, 1024, 10);
+            }
+
+            //return;
+        }
+        else if (s_gl.csshader) {
             sp.diffuseColor = shader._vf.diffuseFactor.toGL();
             sp.specularColor = shader._vf.specularFactor.toGL();
             sp.emissiveColor = shader._vf.emissiveFactor.toGL();

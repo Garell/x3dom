@@ -174,6 +174,9 @@ x3dom.Cache.prototype.getShaderByProperties = function (gl, shape, properties, p
         else if (shadows !== undefined && shadows !== null) {
             program = new x3dom.shader.DynamicShadowShader(gl, properties);
         }
+        else if (properties.PBRSHADER != 0){
+            program = new x3dom.shader.PBRShader(gl, properties);
+        }
         else if (properties.CSHADER != -1) {
             program = new x3dom.shader.ComposedShader(gl, shape);
         }
