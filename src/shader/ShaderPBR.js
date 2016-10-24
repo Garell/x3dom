@@ -41,13 +41,15 @@ x3dom.shader.pbr.RenderPBRVertexShader = function(){
         'uniform mat4 modelViewMatrix;\n'+
         'uniform mat4 normalMatrix;\n'+
 
+        'uniform mat4 modelMatrix;\n'+
+
         'varying vec3 v_texCoord;\n'+
         'varying vec3 v_normal;\n'+
         'varying vec3 v_eyeVector;\n'+
 
         'void main()\n'+
         '{\n'+
-           ' gl_Position = modelViewProjectionMatrix * vec4(position, 1.0);\n'+
+            'gl_Position = modelViewProjectionMatrix * vec4(position, 1.0);\n'+
 
             'v_normal = ((normalMatrix*vec4(normal, 0.0)).xyz);\n'+
             'v_texCoord = texcoord;\n'+
@@ -290,23 +292,23 @@ x3dom.shader.PBRPrefilterEnvShader.prototype.generateFragmentShader = function(g
             'vec3 dir = vec3(0.0);\n'+
     
             'if(face == 0)\n'+
-                'dir = vec3(1.0, -debiased.y, -debiased.x);\n'+
+                'dir = vec3(1.0, -debiased.y, -debiased.x);\n'+ // posX
             'else if(face == 1)\n'+
-                'dir = vec3(-1.0, -debiased.y, debiased.x);\n'+
+                'dir = vec3(-1.0, -debiased.y, debiased.x);\n'+ // negX
             'else if(face == 2)\n'+
-                'dir = vec3(debiased.x, 1.0, debiased.y);\n'+
+                'dir = vec3(debiased.x, 1.0, debiased.y);\n'+ // posY
             'else if(face == 3)\n'+
-                'dir = vec3(debiased.x, -1.0, -debiased.y);\n'+
+                'dir = vec3(debiased.x, -1.0, -debiased.y);\n'+ // negY
             'else if(face == 4)\n'+
-                'dir = vec3(debiased.x, -debiased.y, 1.0);\n'+
+                'dir = vec3(debiased.x, -debiased.y, 1.0);\n'+ // posZ
             'else if(face == 5)\n'+
-                'dir = vec3(-debiased.x, -debiased.y, -1.0);\n'+
+                'dir = vec3(-debiased.x, -debiased.y, -1.0);\n'+ // negZ
     
             'return dir;\n'+
         '}\n'+
         'void main()\n'+
         '{\n'+
-            'vec3 cubeDir = normalize(GetCubeDirFromUVFace(0, vec2(1.0-v_texCoord.x, v_texCoord.y)));\n'+
+            'vec3 cubeDir = normalize(GetCubeDirFromUVFace(face, vec2(1.0-v_texCoord.x, v_texCoord.y)));\n'+
             'gl_FragColor = vec4(PrefilterEnvMap(roughness, cubeDir),1.0);\n'+
         '}\n';
 
@@ -371,7 +373,7 @@ x3dom.shader.PBRCalcBRDFShader.prototype.generateFragmentShader = function(gl, p
     shader+=
         'void main()\n'+
         '{\n'+
-        'vec2 brdf = IntegrateBRDF(v_texCoord.x,v_texCoord.y);\n'+
+        'vec2 brdf = IntegrateBRDF(1.0-v_texCoord.x,v_texCoord.y);\n'+
         'gl_FragColor = vec4(brdf, 0.0,1.0);\n'+
         '}\n';
 
@@ -590,7 +592,7 @@ x3dom.shader.pbr.util.createPrefilteredEnvMipmaps = function(gl, cubeMap, width,
 
         for(var i = 0; i<6;++i)
         {
-            gl.uniform1f(gl.getUniformLocation(shader, "face"), i);
+
 
             var textureType = gl.TEXTURE_CUBE_MAP_POSITIVE_X + i;
             gl.texImage2D(textureType, 0, gl.RGBA, mipWidth, mipHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
@@ -603,6 +605,8 @@ x3dom.shader.pbr.util.createPrefilteredEnvMipmaps = function(gl, cubeMap, width,
 
         for(i = 0; i<6;++i)
         {
+            gl.uniform1i(gl.getUniformLocation(shader, "face"), i);
+
             var textureType = gl.TEXTURE_CUBE_MAP_POSITIVE_X + i;
             x3dom.shader.pbr.util.renderToTexture(gl, shader, texture, textureType, mipWidth, mipHeight);
         }

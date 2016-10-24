@@ -170,6 +170,7 @@ x3dom.BindableBag = function (doc) {
     this.addType ("X3DBackgroundNode", "Background", "getBackground", doc);
     this.addType ("X3DFogNode", "Fog", "getFog", doc);
     this.addType ("X3DEnvironmentNode", "Environment", "getEnvironment", doc);
+    this.addType ("X3DEnvironmentLight", "PhysicalEnvironmentLight", "getEnvironmentLight", doc);
 };
 
 x3dom.BindableBag.prototype.addType = function(typeName, defaultTypeName, getter, doc) {

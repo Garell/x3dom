@@ -4,16 +4,73 @@
 	    <meta http-equiv='X-UA-Compatible' content='chrome=1'></meta>
 	    <meta http-equiv='Content-Type' content='text/html;charset=utf-8'></meta>
 		<script type="text/javascript" src="../../x3dom_include.js"></script>
+
+		<script type="text/javascript" src="dat.gui.min.js"></script>
+
+        <script>
+            var Controller = function()
+            {
+                this.roughness = 0.0;
+                this.metallic = 0.0;
+                this.baseColor = [0.0, 0.0, 0.0];
+            }
+            window.onload = function(){
+                var controller = new Controller();
+
+                var gui = new dat.gui.GUI();
+                gui.add(controller, 'roughness', 0.0, 1.0).step(0.01)
+                    .onChange(function(value)
+                    {
+                        document.getElementById("physMat").setAttribute("roughnessFactor",value);
+                    });
+
+                gui.add(controller, 'metallic', 0.0, 1.0).step(0.01)
+                    .onChange(function(value)
+                    {
+                        document.getElementById("physMat").setAttribute("metallicFactor",value);
+                    });
+
+
+                gui.addColor(controller, 'baseColor')
+                    .onChange(function(value)
+                    {
+                        var v = value.map(function(x){return x/255.0}).join(" ");
+                        console.log(v);
+                        document.getElementById("physMat").setAttribute("albedoFactor",v);
+                    });
+            }
+        </script>
+
 		<script id="pbrFragShader" type="text/plain">
 			precision mediump float;
 
-			uniform samplerCube envTex;
+			uniform samplerCube envTex0;
+			uniform samplerCube envTex1;
+			uniform samplerCube envTex2;
+			uniform samplerCube envTex3;
+			uniform samplerCube envTex4;
+			uniform samplerCube envTex5;
+			uniform samplerCube envTex6;
+			uniform samplerCube envTex7;
+			uniform samplerCube envTex8;
+			uniform samplerCube envTex9;
+
 			uniform sampler2D BRDF;
+
+			uniform sampler2D albedoMap;
+			uniform sampler2D roughnessMap;
+			uniform sampler2D metallicMap;
 			
+			uniform mat4 viewMatrixInverse;
+
 			varying vec3 v_texCoord;
 			varying vec3 v_normal;
 			varying vec3 v_eyeVector;
-		
+
+			uniform float roughnessFactor;
+			uniform float metallicFactor;
+			uniform vec3 albedoFactor;
+
 			float saturate(float x) {
 				return clamp(x, 0.0, 1.0);
 			}		
@@ -22,15 +79,42 @@
 			{
 				return mix(f0, vec3(1.0), pow(1.01 - product, 5.0));
 			}
+
+			vec4 IBL(float roughness, vec3 R)
+			{
+				float v = roughness * 10.0;
+
+				if(v < 1.0)
+					return mix(textureCube(envTex0, R), textureCube(envTex1, R), v);
+				else if(v < 2.0)
+					return mix(textureCube(envTex1, R), textureCube(envTex2, R), fract(v));
+				else if(v < 3.0)
+					return mix(textureCube(envTex2, R), textureCube(envTex3, R), fract(v));
+				else if(v < 4.0)
+					return mix(textureCube(envTex3, R), textureCube(envTex4, R), fract(v));
+				else if(v < 5.0)
+					return mix(textureCube(envTex4, R), textureCube(envTex5, R), fract(v));
+				else if(v < 6.0)
+					return mix(textureCube(envTex5, R), textureCube(envTex6, R), fract(v));
+				else if(v < 7.0)
+					return mix(textureCube(envTex6, R), textureCube(envTex7, R), fract(v));
+				else if(v < 2.0)
+					return mix(textureCube(envTex7, R), textureCube(envTex8, R), fract(v));
+				else if(v < 9.0)
+					return mix(textureCube(envTex8, R), textureCube(envTex9, R), fract(v));
+				else
+					return textureCube(envTex9, R);
+			}
 			
 			void main()
 			{
 				vec2 texcoord = vec2(v_texCoord.x,-v_texCoord.y);
 				
-				float roughness = 0.0;
-				float metalness = 1.0;
-				vec3 baseColor = vec3(0.2, 0.4, 0.6);
+				float roughness = texture2D(roughnessMap, texcoord).x;
+				float metalness = texture2D(metallicMap, texcoord).x;
+				vec3 baseColor = texture2D(albedoMap, texcoord).xyz;
 
+				//vec2 texcoord = vec2(v_texCoord.x,-v_texCoord.y);
 				//vec3 normal = perturb_normal(v_normal, v_eyeVector, texcoord);
 
 				vec3 N = normalize(v_normal);
@@ -41,12 +125,12 @@
 				vec3 F0 = mix(vec3(0.04), baseColor, metalness);
 				vec3 Fc = fresnel_factor(F0, NoV);
 
-				vec3 cdiff = baseColor * (1.0 - Fc);
+				vec3 cdiff = baseColor * (1.0 - F0);
 
-				vec3 R =  reflect(-V,N);
+				vec3 R =  (viewMatrixInverse * vec4(reflect(-V,N), 0.0)).xyz;
 
-				vec3 EnvDiff = textureCube(envTex, R).xyz; 
-				vec3 EnvSpec = textureCube(envTex, R).xyz; 
+				vec3 EnvDiff = IBL(1.0, R).xyz; 
+				vec3 EnvSpec = IBL(roughness, R).xyz; 
 				vec2 EnvBRDF = texture2D(BRDF, vec2(roughness, NoV)).xy; 
 
 				vec3 specular =  EnvSpec * (F0 * EnvBRDF.x + EnvBRDF.y);
@@ -55,31 +139,39 @@
 				vec3 color = diff + specular;
 
 				gl_FragColor = vec4(color, 1.0);
-				
-				//gl_FragColor = vec4(texture2D(BRDF,texcoord).xyz, 1.0);
+
 			}
 		</script>
 	</head>
 	<body>
 		<x3d id="x3d" style="width:100%;height:100%;">
 			<scene>
-				<shape>
+				<PhysicalEnvironmentLight>
+					<ComposedCubeMapTexture containerfield="diffuse" >
+						<ImageTexture url="./envMap/posx.jpg" containerfield="right"></ImageTexture>
+						<ImageTexture url="./envMap/negx.jpg" containerfield="left"></ImageTexture>
+
+						<ImageTexture url="./envMap/posy.jpg" containerfield="top"></ImageTexture>
+						<ImageTexture url="./envMap/negy.jpg" containerfield="bottom"></ImageTexture>
+
+						<ImageTexture url="./envMap/posz.jpg" containerfield="front"></ImageTexture>
+						<ImageTexture url="./envMap/negz.jpg" containerfield="back"></ImageTexture>
+					</ComposedCubeMapTexture>
+				</PhysicalEnvironmentLight>
+				<!--<shape>
 					<Appearance>
-						<PhysicalMaterial>
-							<ComposedCubeMapTexture containerfield="envMap" >
-								<ImageTexture url="posx.jpg" containerfield="right"></ImageTexture>
-								<ImageTexture url="negx.jpg" containerfield="left"></ImageTexture>
-
-								<ImageTexture url="posy.jpg" containerfield="top"></ImageTexture>
-								<ImageTexture url="negy.jpg" containerfield="bottom"></ImageTexture>
-
-								<ImageTexture url="posz.jpg" containerfield="front"></ImageTexture>
-								<ImageTexture url="negz.jpg" containerfield="back"></ImageTexture>
-							</ComposedCubeMapTexture>
+						<PhysicalMaterial id="physMat" roughnessFactor="0.0" albedoFactor="1.0 1.0 1.0" metallicFactor="1.0" >							
+							<ImageTexture url="./cerberus/Cerberus_A.png" containerfield="albedoMap" />
 						</PhysicalMaterial>
 					</Appearance>
 					<Sphere />
-				</shape>				
+				</shape>-->
+				<Transform rotation="0 0 1 1.57" >
+					<Transform rotation="0 1 0 1.57" >
+						<inline url="./cerberus/Cerberus_LP.x3d" />
+					</Transform>
+				</Transform>
+				<Background leftUrl="./envMap/negx.jpg" rightUrl="./envMap/posx.jpg" topUrl="./envMap/posy.jpg" bottomUrl="./envMap/negy.jpg" frontUrl="./envMap/posz.jpg" backUrl="./envMap/negz.jpg"/>				
 			</scene>
 		</x3d>
 	</body>

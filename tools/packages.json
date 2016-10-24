@@ -129,8 +129,7 @@
                     {"file": "Material.js"},
                     {"file": "TwoSidedMaterial.js"},
                     {"file": "X3DShapeNode.js"},
-                    {"file": "Shape.js"},
-					{"file": "PhysicalMaterial.js"}
+                    {"file": "Shape.js"}
                 ]},
                 {"name": "Lighting", "filePrefix": "nodes/Lighting/", "files":[
                     {"file": "X3DLightNode.js"},
@@ -274,6 +273,11 @@
                     {"file": "PlaneSensor.js"},
                     {"file": "SphereSensor.js"},
                     {"file": "CylinderSensor.js"}
+                ]},
+                {"name": "PhysicallyBasedRendering", "filePrefix": "nodes/PhysicallyBasedRendering/", "files":[
+                    {"file": "X3DEnvironmentLight.js"},
+                    {"file": "PhysicalMaterial.js"},
+                    {"file": "PhysicalEnvironmentLight.js"}                    
                 ]}
             ]},
 

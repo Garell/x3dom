@@ -2081,27 +2081,46 @@ x3dom.gfx_webgl = (function () {
 
         if(x3dom.isa(mat, x3dom.nodeTypes.PhysicalMaterial))
         {
-            var texBRDF = x3dom.shader.pbr.util.renderBRFDToTexture(gl, null);
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, texBRDF);
-            sp.bind();
-            sp.BRDF = 0;
+            sp.roughnessFactor = mat._vf.roughnessFactor;
+            sp.metallicFactor = mat._vf.metallicFactor;
+            sp.albedoFactor = mat._vf.albedoFactor.toGL();
 
-            if(mat.tex == null)
-                mat.tex = new x3dom.Texture(gl, shape._nameSpace.doc, this.cache, mat._cf.envMap.node);
+            var envLight = viewarea._scene.getEnvironmentLight();
 
-            if(mat.tex.texture.textureCubeReady){
-                gl.activeTexture(gl.TEXTURE1);
-                gl.bindTexture(gl.TEXTURE_CUBE_MAP, mat.tex.texture);
+            var texOffset = s_gl.texture.length;
 
-                gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-                gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-                gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-                gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            if(envLight.textures.BRDF)
+            {
+                sp.BRDF = texOffset;
 
-                sp.envTex = 1;
-                //x3dom.shader.pbr.util.createPrefilteredEnvMipmaps(gl, mat.tex.texture, 1024, 1024, 10);
+                var texBRDF = envLight.textures.BRDF;
+
+                gl.activeTexture(gl.TEXTURE0 + texOffset);
+                gl.bindTexture(gl.TEXTURE_2D, texBRDF);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
             }
+
+            if(envLight.textures.diffuseMipmaps)
+            {
+                var mipmaps = envLight.textures.diffuseMipmaps;
+                for(var i = 0; i< 10; ++i)
+                {
+                    sp["envTex"+i] = texOffset + i + 1;
+
+                    gl.activeTexture(gl.TEXTURE1 + i + texOffset);
+                    gl.bindTexture(gl.TEXTURE_CUBE_MAP, mipmaps[i]);
+
+                    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                }
+            }
+
+            sp.bind();
 
             //return;
         }
@@ -2416,7 +2435,7 @@ x3dom.gfx_webgl = (function () {
 
         sp.modelViewProjectionMatrix = mat_scene.mult(transform).toGL();
 
-        if (isUserDefinedShader || shape._clipPlanes && shape._clipPlanes.length)
+        if (isUserDefinedShader || shape._clipPlanes && shape._clipPlanes.length || x3dom.isa(mat, x3dom.nodeTypes.PhysicalMaterial))
         {
             sp.viewMatrixInverse = mat_view.inverse().toGL();
         }
@@ -3618,6 +3637,11 @@ x3dom.gfx_webgl = (function () {
         var bgnd = scene.getBackground();
         // setup or update bgnd
         this.setupScene(gl, bgnd);
+
+        var environmentalLight = scene.getEnvironmentLight();
+        if(environmentalLight){
+            environmentalLight.setup(gl, viewarea._doc, this.cache);
+        }
 
         this.numFaces = 0;
         this.numCoords = 0;
