@@ -62,6 +62,97 @@ x3dom.shader.pbr.RenderPBRVertexShader = function(){
 /**
  * @return {string}
  */
+x3dom.shader.pbr.RenderPBRFragmentShader = function(properties){
+    var shader =
+        'precision mediump float;\n'+
+        'uniform sampler2D BRDF;\n';
+
+    var mipmaps = properties.PBRSHADERMIPMAPS;
+
+    for(var i = 0; i<mipmaps; ++i)
+        shader += 'uniform samplerCube envTex'+i+';\n';
+
+    shader +=
+        'varying vec3 v_texCoord;\n'+
+        'varying vec3 v_normal;\n'+
+        'varying vec3 v_eyeVector;\n'+
+
+        'uniform mat4 viewMatrixInverse;\n'+
+
+        'uniform float roughnessFactor;\n'+
+        'uniform float metallicFactor;\n'+
+        'uniform vec3 albedoFactor;\n'+
+
+        'uniform sampler2D albedoMap;\n'+
+        'uniform sampler2D roughnessMap;\n'+
+        'uniform sampler2D metallicMap;\n';
+
+    shader+=
+        'vec4 IBL(float roughness, vec3 R)\n'+
+        '{\n'+
+        'float v = roughness * '+mipmaps.toFixed(2)+';\n';
+
+    for(var i = 0; i<mipmaps-1; ++i){
+        if(i != 0)
+            shader += 'else ';
+        shader += 'if(v < '+(i+1).toFixed(2)+')\n';
+        shader +='   return mix(textureCube(envTex'+i+', R), textureCube(envTex'+(i+1)+', R), fract(v)); \n';
+    }
+    shader +=
+        'else \n'+
+        '   return textureCube(envTex'+(mipmaps-1)+', R);\n';
+    shader +=
+        '}\n';
+
+    shader +=
+        'float saturate(float x) {\n'+
+        '   return clamp(x, 0.0, 1.0);\n'+
+        '}\n'+
+
+        'vec3 fresnel_factor(vec3 f0, float product)\n'+
+        '{\n'+
+            'return mix(f0, vec3(1.0), pow(1.01 - product, 5.0));\n'+
+        '}\n'+
+
+        'void main()\n'+
+        '{\n'+
+            'vec2 texcoord = vec2(v_texCoord.x,-v_texCoord.y);\n'+
+
+            'float roughness = texture2D(roughnessMap, texcoord).x;\n'+
+            'float metalness = texture2D(metallicMap, texcoord).x;\n'+
+            'vec3 baseColor = texture2D(albedoMap, texcoord).xyz;\n'+
+
+            'vec3 N = normalize(v_normal);\n'+
+            'vec3 V = normalize(-v_eyeVector);\n'+
+
+            'float NoV = saturate(dot(N,V));\n'+
+
+            'vec3 F0 = mix(vec3(0.04), baseColor, metalness);\n'+
+            'vec3 Fc = fresnel_factor(F0, NoV);\n'+
+
+            'vec3 cdiff = baseColor * (1.0 - F0);\n'+
+
+            'vec3 R =  (viewMatrixInverse * vec4(reflect(-V,N), 0.0)).xyz;\n'+
+
+            'vec3 EnvDiff = IBL(1.0, R).xyz;\n'+
+            'vec3 EnvSpec = IBL(roughness, R).xyz;\n'+
+            'vec2 EnvBRDF = texture2D(BRDF, vec2(roughness, NoV)).xy;\n'+
+
+            'vec3 specular =  EnvSpec * (F0 * EnvBRDF.x + EnvBRDF.y);\n'+
+            'vec3 diff = EnvDiff * mix(cdiff, vec3(0.0), F0);\n'+
+
+            'vec3 color = diff + specular;\n'+
+
+            'gl_FragColor = vec4(color, 1.0);\n'+
+
+        '}';
+
+    return shader;
+};
+
+/**
+ * @return {string}
+ */
 x3dom.shader.pbr.PreCalcFragFunctions = function()
 {
     var shaderPart =
@@ -424,42 +515,9 @@ x3dom.shader.PBRShader.prototype.generateVertexShader = function(gl, properties)
 
 x3dom.shader.PBRShader.prototype.generateFragmentShader = function(gl, properties)
 {
-    var shader =
-        'void main()'+
-        '{'+
-            'vec2 texcoord = vec2(v_texCoord.x,-v_texCoord.y);'+
+    var shader = x3dom.shader.pbr.RenderPBRFragmentShader(properties);
 
-            'float roughness = texture2D(roughnessTex, texcoord).x;'+
-            'float metalness = texture2D(metallicTex, texcoord).x;'+
-            'vec3 baseColor = texture2D(diffuseTex, texcoord).xyz;'+
-
-            'vec3 normal = perturb_normal(v_normal, v_eyeVector, texcoord);'+
-
-            'vec3 N = normalize(normal);'+
-            'vec3 V = normalize(-v_eyeVector);'+
-
-            'float NoV = saturate(dot(N,V));'+
-
-            'vec3 F0 = mix(vec3(0.04), baseColor, metalness);'+
-            'vec3 Fc = fresnel_factor(F0, NoV);'+
-
-            'vec3 cdiff = baseColor * (1.0 - Fc);'+
-
-            'vec3 R =  reflect(-V,N);'+
-
-            'vec3 EnvDiff = PrefilterEnvMap(1.0, R);'+
-            'vec3 EnvSpec = PrefilterEnvMap(roughness, R);'+
-            'vec2 EnvBRDF = IntegrateBRDF(roughness, NoV);'+
-
-            'vec3 specular =  EnvSpec * (F0 * EnvBRDF.x + EnvBRDF.y);'+
-            'vec3 diff = EnvDiff * mix(cdiff, vec3(0.0), F0);'+
-
-            'vec3 color = diff + specular;'+
-
-            'gl_FragColor = vec4(color, 1.0);'+
-        '}';
-
-    shader =  document.getElementById("pbrFragShader").textContent;
+    //shader =  document.getElementById("pbrFragShader").textContent;
 
     var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
     gl.shaderSource(fragmentShader, shader);
@@ -537,11 +595,12 @@ x3dom.shader.pbr.util.renderToTexture = function(gl, shader, outTexture, texture
 
 x3dom.shader.pbr.util.renderBRFDToTexture = function(gl)
 {
+    /*
     if(x3dom.shader.pbr.util.texture != null)
     {
         //x3dom.shader.pbr.util.DebugRenderTexturedQuad(gl, x3dom.shader.pbr.util.texture, gl.TEXTURE_2D);
         return x3dom.shader.pbr.util.texture;
-    }
+    }*/
 
     var texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -561,11 +620,12 @@ x3dom.shader.pbr.util.renderBRFDToTexture = function(gl)
 
 x3dom.shader.pbr.util.createPrefilteredEnvMipmaps = function(gl, cubeMap, width, height, levels)
 {
+    /*
     if(x3dom.shader.pbr.util.mipmaps != null)
     {
         //x3dom.shader.pbr.util.DebugRenderTexturedCubeToQuad(gl,x3dom.shader.pbr.util.mipmaps[1]);
         return x3dom.shader.pbr.util.mipmaps;
-    }
+    }*/
 
     var shader = new x3dom.shader.PBRPrefilterEnvShader(gl);
     gl.useProgram(shader);
