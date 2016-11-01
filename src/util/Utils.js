@@ -1065,7 +1065,10 @@ x3dom.Utils.generateProperties = function (viewarea, shape)
         property.GAMMACORRECTION  = environment._vf.gammaCorrectionDefault;
 
         property.PBRSHADER        = x3dom.isa(material, x3dom.nodeTypes.PhysicalMaterial) ? 1 : 0;
-        property.PBRSHADERMIPMAPS  = (viewarea._scene.getEnvironmentLight() && viewarea._scene.getEnvironmentLight()._vf.genLevel) ? viewarea._scene.getEnvironmentLight()._vf.genLevel : 1;
+        property.PBRSHADERMIPMAPS = (viewarea._scene.getEnvironmentLight() && viewarea._scene.getEnvironmentLight()._vf.genLevel) ? viewarea._scene.getEnvironmentLight()._vf.genLevel : 1;
+        property.PBRALBEDOMAP     = (property.PBRSHADER && material.getAlbedoMap()) ? 1 : 0;
+        property.PBRMETALLICMAP     = (property.PBRSHADER && material.getMetallicMap()) ? 1 : 0;
+        property.PBRROUGHNESSMAP     = (property.PBRSHADER && material.getRoughnessMap()) ? 1 : 0;
 
         //console.log(property);
 	}

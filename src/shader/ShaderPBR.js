@@ -77,15 +77,22 @@ x3dom.shader.pbr.RenderPBRFragmentShader = function(properties){
         'varying vec3 v_normal;\n'+
         'varying vec3 v_eyeVector;\n'+
 
-        'uniform mat4 viewMatrixInverse;\n'+
+        'uniform mat4 viewMatrixInverse;\n';
 
-        'uniform float roughnessFactor;\n'+
-        'uniform float metallicFactor;\n'+
-        'uniform vec3 albedoFactor;\n'+
+    if(properties.PBRALBEDOMAP)
+        shader += 'uniform sampler2D albedoMap;\n';
+    else
+        shader += 'uniform vec3 albedoFactor;\n';
 
-        'uniform sampler2D albedoMap;\n'+
-        'uniform sampler2D roughnessMap;\n'+
-        'uniform sampler2D metallicMap;\n';
+    if(properties.PBRMETALLICMAP)
+        shader += 'uniform sampler2D metallicMap;\n';
+    else
+        shader += 'uniform float metallicFactor;\n';
+
+    if(properties.PBRROUGHNESSMAP)
+        shader += 'uniform sampler2D roughnessMap;\n';
+    else
+        shader += 'uniform float roughnessFactor;\n';
 
     shader+=
         'vec4 IBL(float roughness, vec3 R)\n'+
@@ -116,13 +123,24 @@ x3dom.shader.pbr.RenderPBRFragmentShader = function(properties){
 
         'void main()\n'+
         '{\n'+
-            'vec2 texcoord = vec2(v_texCoord.x,-v_texCoord.y);\n'+
+            'vec2 texcoord = vec2(v_texCoord.x,-v_texCoord.y);\n';
 
-            'float roughness = texture2D(roughnessMap, texcoord).x;\n'+
-            'float metalness = texture2D(metallicMap, texcoord).x;\n'+
-            'vec3 baseColor = texture2D(albedoMap, texcoord).xyz;\n'+
+    if(properties.PBRALBEDOMAP)
+        shader+= 'vec3 baseColor = texture2D(albedoMap, texcoord).xyz;\n';
+    else
+        shader+= 'vec3 baseColor = vec3(albedoFactor);\n';
 
-            'vec3 N = normalize(v_normal);\n'+
+    if(properties.PBRMETALLICMAP)
+        shader+= 'float metalness = texture2D(metallicMap, texcoord).x;\n';
+    else
+        shader+= 'float metalness = metallicFactor;\n';
+
+    if(properties.PBRROUGHNESSMAP)
+        shader+= 'float roughness = texture2D(roughnessMap, texcoord).x;\n';
+    else
+        shader+= 'float roughness = roughnessFactor;\n';
+
+    shader+='vec3 N = normalize(v_normal);\n'+
             'vec3 V = normalize(-v_eyeVector);\n'+
 
             'float NoV = saturate(dot(N,V));\n'+
