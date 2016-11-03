@@ -1064,6 +1064,7 @@ x3dom.Utils.generateProperties = function (viewarea, shape)
 
         property.GAMMACORRECTION  = environment._vf.gammaCorrectionDefault;
 
+        property.KHR_MATERIAL_COMMONS = 0;
         property.PBRSHADER        = x3dom.isa(material, x3dom.nodeTypes.PhysicalMaterial) ? 1 : 0;
         property.PBRSHADERMIPMAPS = (viewarea._scene.getEnvironmentLight() && viewarea._scene.getEnvironmentLight()._vf.genLevel) ? viewarea._scene.getEnvironmentLight()._vf.genLevel : 1;
         property.PBRALBEDOMAP     = (property.PBRSHADER && material.getAlbedoMap()) ? 1 : 0;
@@ -1074,6 +1075,7 @@ x3dom.Utils.generateProperties = function (viewarea, shape)
 	}
 
 	property.toIdentifier = function() {
+        delete this.id;
 		var id = "";
 		for(var p in this) {
 			if(this[p] != this.toIdentifier && this[p] != this.toString) {
