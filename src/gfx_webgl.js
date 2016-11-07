@@ -1445,6 +1445,10 @@ x3dom.gfx_webgl = (function () {
                     var mesh = shape.meshes[q];
 
                     mesh.bindVertexAttribPointerPosition(gl, sp, false);
+
+                    if(mesh.hasQuantizedAttributes())
+                        mesh.applyQuantizedAttributes()
+
                     mesh.render(gl, null);
                 }
                 else
@@ -1466,7 +1470,7 @@ x3dom.gfx_webgl = (function () {
 
                         gl.bindBuffer(gl.ARRAY_BUFFER, s_gl.buffers[q6 + 5]);
                         //texture coordinate hack for IDs
-                        if ((s_gl.binaryGeometry != 0 || s_gl.externalGeometry != 0) && s_geo._vf["idsPerVertex"] == true) {
+                        if ((s_gl.binaryGeometry != 0) && s_geo._vf["idsPerVertex"] == true) {
                             gl.vertexAttribPointer(sp.id,
                                 1, gl.FLOAT, false,
                                 4, 0);
@@ -2497,6 +2501,9 @@ x3dom.gfx_webgl = (function () {
             if (s_gl.externalGeometry != 0) {
                 var mesh = shape.meshes[q];
                 var exGeomShaderProgram = sp;
+
+                if(mesh.hasQuantizedAttributes())
+                    mesh.applyQuantizedAttributes(sp);
 
                 if(mesh.material!=null){
                     if(mesh.material.program!=null){

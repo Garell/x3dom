@@ -173,7 +173,7 @@ x3dom.Cache.prototype.getShaderByProperties = function (gl, shape, properties, p
         }
         else if (shadows !== undefined && shadows !== null)
             program = new x3dom.shader.DynamicShadowShader(gl, properties);
-        else if (properties.PBRSHADER != 0)
+        else if (properties.PBRSHADER != null && properties.PBRSHADER != 0)
             program = new x3dom.shader.PBRShader(gl, properties);
         else if(properties.KHR_MATERIAL_COMMONS != null && properties.KHR_MATERIAL_COMMONS != 0)
             program = new x3dom.shader.KHRMaterialCommonsShader(gl, properties);
